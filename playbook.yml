@@ -1,0 +1,5 @@
+- name: LIL on OpenShift
+  hosts: namespaces
+  gather_facts: no
+  roles:
+    - lil-namespace

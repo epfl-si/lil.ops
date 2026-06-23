@@ -1,0 +1,96 @@
+- tags: always
+  include_vars: quay-vars.yml
+
+- tags: always
+  include_vars:
+    file: quay-secrets.yml
+    name: quay_secrets
+
+- name: "`Secret/{{ quay_puller_robot_account_name }}`"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ quay_puller_secret_name }}"
+        namespace: "{{ inventory_namespace }}"
+      type: kubernetes.io/dockerconfigjson
+      stringData:
+        .dockerconfigjson: >-
+          {{ lookup("epfl_si.quay.robot_account", quay_organization, quay_puller_robot_account_name,
+                                                  token=quay_botfather_token)
+          | epfl_si.quay.format_docker_config_json | string }}
+
+- name: "`Secret/{{ quay_builder_secret_name }}`"
+  when: >-
+    inventory_deployment_stage == "test"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ quay_builder_secret_name }}"
+        namespace: "{{ inventory_namespace }}"
+      type: kubernetes.io/dockerconfigjson
+      stringData:
+        .dockerconfigjson: >-
+          {{ lookup("epfl_si.quay.robot_account", quay_organization, builder_robot_account_name,
+                                                  token=quay_botfather_token)
+          | epfl_si.quay.format_docker_config_json | string }}
+
+- name: ServiceAccount/builder
+  when: >-
+    inventory_deployment_stage == "test"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: builder
+        namespace: "{{ inventory_namespace }}"
+      secrets:
+        - name: "{{ quay_builder_secret_name }}"
+      imagePullSecrets:
+        - name: "{{ quay_builder_secret_name }}"
+
+# Mirror Node:20 base image here
+
+- name: Build lil-frontend
+  when: >-
+    inventory_deployment_stage == "test"
+  include_tasks:
+    file: _build.yml
+  vars:
+    build_name: lil-frontend
+    build_description: LIL frontend application
+    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization_lhd }}/node:20"
+    build_source:
+      type: Git
+      git:
+        uri: "https://github.com/epfl-si/lil.frontend"
+        ref: master
+    build_rebuild_tags:
+      - lil.rebuild
+
+- name: Build lil-backend
+  when: >-
+    inventory_deployment_stage == "test"
+  include_tasks:
+    file: _build.yml
+  vars:
+    build_name: lil-backend
+    build_description: lil backend application
+    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization_lhd }}/node:20"
+    build_source:
+      type: Git
+      git:
+        uri: "https://github.com/epfl-si/lil.backend"
+        ref: master
+    build_rebuild_tags:
+      - lil.rebuild
