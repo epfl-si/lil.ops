@@ -1,0 +1,33 @@
+- tags: always
+  include_vars: ansible-k8s-credentials.yml
+
+- name: Log in to Kubernetes
+  import_tasks:
+    file: openshift-login.yml
+  tags:
+    # Any and all tags below; for now, this means just
+    - lil.k8s
+
+- include_tasks:
+    file: lil-build.yml
+    apply:
+      tags:
+        - lil.build.k8s
+  tags:
+    - lil.build.k8s
+
+# - include_tasks:
+#     file: lil-backend.yml
+#     apply:
+#       tags:
+#         - lil.deployment.backend.k8s
+#   tags:
+#     - lil.deployment.backend.k8s
+
+# - include_tasks:
+#     file: lil-frontend.yml
+#     apply:
+#       tags:
+#         - lil.deployment.frontend.k8s
+#   tags:
+#     - lil.deployment.frontend.k8s

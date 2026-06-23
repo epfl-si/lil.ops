@@ -1,0 +1,111 @@
+# Re-useable set of tasks for building (with OpenShift `BuildConfig`) a
+# Docker image and hosting the resulting build on Quay.
+#
+# Parameters:
+#
+#  - build_name             (mandatory)
+#        The name of the `BuildConfig` object to create
+#
+#  - build_repository_name
+#        The name of Quay repository to push to. Defaults to `build_name`
+#
+#  - build_push_tag
+#        The tag to push to after building. Defaults to `latest`
+#
+#  - build_description
+#        The image description visible in the Quay UI
+#
+#  - build_base             (mandatory)
+#        The image to use as the base, i.e. substitute the first `FROM` line
+#        in the Dockerfile with.
+#
+#  - build_source           (mandatory)
+#        The BuildConfig's `.spec.source` data structure
+#
+#  - build_rebuild_tags
+#        One or more tags that should force a rebuild of the image when
+#        present
+
+- name: "{{ build_name }} on {{ ansible_quay_hostname }}"
+  run_once: true
+  epfl_si.quay.quay_repository:
+    name: "{{ build_name }}"
+    organization: "{{ quay_organization }}"
+    description: >-
+      {{ build_description | default("No description provided to _build.yml") }}
+    visibility: public
+
+- name: "Access matrix to {{ ansible_quay_hostname }}/{{ quay_organization }}/{{ build_name }}:{{ lhd_deployment_images_tag }}"
+  run_once: true
+  epfl_si.quay.robot_account_permission:
+    robot_account_name: "{{ item.robot_account }}"
+    organization: "{{ quay_organization }}"
+    repository_name: "{{ build_repository_name | default(build_name) }}"
+    permission: "{{ item.permission }}"
+  with_items:
+    - robot_account: "{{ builder_robot_account_name }}"
+      permission: write
+    - robot_account: "{{ quay_puller_robot_account_name }}"
+      permission: read
+
+- name: "Access matrix to {{ ansible_quay_hostname }}/{{ quay_organization }}/{{ item }}"
+  run_once: true
+  epfl_si.quay.robot_account_permission:
+    robot_account_name: "{{ builder_robot_account_name }}"
+    organization: "{{ quay_organization }}"
+    repository_name: "{{ item }}"
+    permission: read
+  with_items:
+    - node
+
+- name: "`BuildConfig/{{ build_name }}`"
+  register: "_buildconfig_buildconfig"
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: build.openshift.io/v1
+      kind: BuildConfig
+      metadata:
+        name: "{{ build_name }}"
+        namespace: "{{ inventory_namespace }}"
+      spec:
+        source: "{{ build_source }}"
+        strategy:
+          type: Docker
+          dockerStrategy:
+            from:   # Override the Dockerfile's `FROM` line
+              kind: DockerImage
+              name: "{{ build_base }}"
+        output:
+          to:
+            kind: DockerImage
+            name: >-
+              {{ ansible_quay_hostname
+              }}/{{ quay_organization
+              }}/{{ build_repository_name | default(build_name)
+              }}:{{ build_push_tag | default("latest") }}
+        serviceAccount: builder
+        resources:
+          limits:
+            memory: "4Gi"
+          requests:
+            cpu: "100m"
+            memory: "4Gi"
+
+- name: Build {{ build_name }} now
+  tags: "{{ build_rebuild_tags | default([]) }}"
+  when: >-
+    (_buildconfig_buildconfig | default({}) is changed)
+    or
+    _build_rebuild_tags__intersect__ansible_run_tags
+  shell:
+    cmd: |
+      set -e -x
+      export KUBECONFIG=$K8S_AUTH_KUBECONFIG
+      oc -n {{ inventory_namespace }} start-build --wait {{ build_name }}
+  vars:
+    _build_rebuild_tags: >-
+      {{ build_rebuild_tags | default([]) }}
+    _build_rebuild_tags__intersect__ansible_run_tags: >-
+      {{ ((_build_rebuild_tags + ansible_run_tags) | count)
+      != (dict.fromkeys(_build_rebuild_tags + ansible_run_tags) | count)
+      }}
