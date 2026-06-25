@@ -61,6 +61,7 @@
 - name: "`BuildConfig/{{ build_name }}`"
   register: "_buildconfig_buildconfig"
   kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
     definition:
       apiVersion: build.openshift.io/v1
       kind: BuildConfig
@@ -100,7 +101,7 @@
   shell:
     cmd: |
       set -e -x
-      export KUBECONFIG=$K8S_AUTH_KUBECONFIG
+      export KUBECONFIG="{{ ansible_k8s_kubeconfig }}"
       oc -n {{ inventory_namespace }} start-build --wait {{ build_name }}
   vars:
     _build_rebuild_tags: >-

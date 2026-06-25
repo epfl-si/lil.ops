@@ -60,6 +60,15 @@
         - name: "{{ quay_builder_secret_name }}"
 
 # Mirror Node:20 base image here
+- name: Mirror the Node:20 base image
+  when: >-
+    inventory_deployment_stage == "test"
+  include_tasks:
+    file: ../../tasks/_mirror.yml
+  vars:
+    mirror_name: "node"
+    mirror_from: "docker.io/library/node"
+    mirror_tags: ["20"]
 
 - name: Build lil-frontend
   when: >-
@@ -69,12 +78,12 @@
   vars:
     build_name: lil-frontend
     build_description: LIL frontend application
-    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization_lhd }}/node:20"
+    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization }}/node:20"
     build_source:
       type: Git
       git:
         uri: "https://github.com/epfl-si/lil.frontend"
-        ref: master
+        ref: feature/dockerfile
     build_rebuild_tags:
       - lil.rebuild
 
@@ -86,11 +95,11 @@
   vars:
     build_name: lil-backend
     build_description: lil backend application
-    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization_lhd }}/node:20"
+    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization }}/node:20"
     build_source:
       type: Git
       git:
         uri: "https://github.com/epfl-si/lil.backend"
-        ref: master
+        ref: feature/dockerfile
     build_rebuild_tags:
       - lil.rebuild
