@@ -25,6 +25,7 @@
 #  - build_rebuild_tags
 #        One or more tags that should force a rebuild of the image when
 #        present
+#
 #  - build_env
 #        Variables available during the image build
 
