@@ -1,6 +1,6 @@
 namespaces:
   "hosts":
-    namespace/svc1172p-labhazdir:
+    namespace/svc0187p-lil-lab-inventory-loc:
       inventory_namespace: svc0187p-lil-lab-inventory-loc
       inventory_deployment_stage: production
       ansible_connection: local

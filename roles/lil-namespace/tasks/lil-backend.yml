@@ -50,7 +50,6 @@
         SERVICE_ACCOUNT_PASSWORD: "{{ lil_backend_secrets.SERVICE_ACCOUNT.PASSWORD }}"
         SERVICE_ACCOUNT_EMAIL: "{{ lil_backend_secrets.SERVICE_ACCOUNT.EMAIL }}"
 
-
 - name: Deployment/lil-backend
   kubernetes.core.k8s:
     kubeconfig: "{{ ansible_k8s_kubeconfig }}"
@@ -122,8 +121,6 @@
   with_items:
     - name: lil-backend-graphql
       path: "/graphql"
-    - name: lil-backend-graphiql
-      path: "/graphiql"
   kubernetes.core.k8s:
     kubeconfig: "{{ ansible_k8s_kubeconfig }}"
     definition:

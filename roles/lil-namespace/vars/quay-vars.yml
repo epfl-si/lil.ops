@@ -1,7 +1,6 @@
 ansible_quay_hostname: quay-its.epfl.ch
 
 quay_organization: svc0187
-quay_organization_lhd: svc1172
 
 # Robot account whose credentials will be used to pull (almost) everything we need from Quay:
 quay_puller_robot_account_name: "svc0187+puller_robot_account"
