@@ -76,6 +76,7 @@
             from:   # Override the Dockerfile's `FROM` line
               kind: DockerImage
               name: "{{ build_base }}"
+            env: "{{ build_env | default([]) }}"
         output:
           to:
             kind: DockerImage

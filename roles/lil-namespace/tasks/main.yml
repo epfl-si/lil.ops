@@ -16,18 +16,18 @@
   tags:
     - lil.build.k8s
 
-# - include_tasks:
-#     file: lil-backend.yml
-#     apply:
-#       tags:
-#         - lil.deployment.backend.k8s
-#   tags:
-#     - lil.deployment.backend.k8s
+- include_tasks:
+    file: lil-backend.yml
+    apply:
+      tags:
+        - lil.deployment.backend.k8s
+  tags:
+    - lil.deployment.backend.k8s
 
-# - include_tasks:
-#     file: lil-frontend.yml
-#     apply:
-#       tags:
-#         - lil.deployment.frontend.k8s
-#   tags:
-#     - lil.deployment.frontend.k8s
+- include_tasks:
+    file: lil-frontend.yml
+    apply:
+      tags:
+        - lil.deployment.frontend.k8s
+  tags:
+    - lil.deployment.frontend.k8s

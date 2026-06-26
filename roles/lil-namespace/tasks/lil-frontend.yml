@@ -1,0 +1,128 @@
+- tags: always
+  include_vars: "{{ item }}"
+  with_items:
+    - quay-vars.yml
+    - lil-vars.yml
+
+- name: ConfigMap/lil-frontend
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: lil-frontend
+        namespace: "{{ inventory_namespace }}"
+      data:
+        LIL_REACT_APP_AUTH_SERVER_URL: "{{ openid_connect[inventory_environment].base_url }}"
+        LIL_REACT_APP_HOMEPAGE_URL: "https://{{ inventory_web_hostname }}/"
+        LIL_REACT_APP_GRAPHQL_ENDPOINT_URL: "https://{{ inventory_web_hostname }}/graphql"
+        LIL_REACT_APP_ENDPOINT_URL: "https://{{ inventory_web_hostname }}"
+        LIL_OIDC_SCOPE: "openid {{ openid_connect[inventory_environment].client_id }}/.default"
+        LIL_OIDC_CLIENT_ID: "{{ openid_connect[inventory_environment].client_id }}"
+
+- name: ServiceAccount/lil
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: lil
+        namespace: "{{ inventory_namespace }}"
+      imagePullSecrets:
+        - name: "{{ quay_puller_secret_name }}"
+
+- name: Deployment/lil-frontend
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: lil-frontend
+        namespace: "{{ inventory_namespace }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: lil-frontend
+        template:
+          metadata:
+            labels:
+              app: lil-frontend
+          spec:
+            serviceAccountName: lil
+            containers:
+              - name: lil-frontend
+                image: "{{ ansible_quay_hostname }}/{{ quay_organization }}/lil-frontend:{{ image_tag }}"
+                imagePullPolicy: Always
+                envFrom:
+                  - configMapRef:
+                      name: lil-frontend
+                resources:
+                  limits:
+                    memory: 256Mi
+                  requests:
+                    cpu: '{{ _cpu_request }}'
+                    memory: 256Mi
+                ports:
+                  - name: lil-p-front
+                    containerPort: 3000
+            imagePullSecrets:
+              - name: "{{ quay_puller_secret_name }}"
+  vars:
+    _cpu_request: "160m"
+
+- name: Service/lil-frontend
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: lil-frontend
+        namespace: "{{ inventory_namespace }}"
+        labels:
+          app: lil-frontend
+        annotations:
+          authors: isas-fsd
+      spec:
+        ports:
+          - port: 3000
+            protocol: TCP
+            targetPort: 3000
+        selector:
+          app: lil-frontend
+        type: ClusterIP
+
+- name: Route/lil-frontend
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    definition:
+      apiVersion: v1
+      kind: Route
+      metadata:
+        name: lil-frontend
+        namespace: '{{ inventory_namespace }}'
+        labels:
+          app: lil-frontend
+          route: private
+        annotations:
+          haproxy.router.openshift.io/balance: roundrobin
+          haproxy.router.openshift.io/disable_cookies: 'true'
+      spec:
+        host: "{{ inventory_web_hostname }}"
+        path: /
+        to:
+          kind: Service
+          name: lil-frontend
+        port:
+          targetPort: 3000
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
