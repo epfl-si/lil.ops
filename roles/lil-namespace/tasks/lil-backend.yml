@@ -1,0 +1,151 @@
+- tags: always
+  include_vars: "{{ item }}"
+  with_items:
+    - quay-vars.yml
+    - lil-vars.yml
+
+- tags: always
+  include_vars:
+    file: quay-secrets.yml
+    name: quay_secrets
+
+- name: ConfigMap/lil-backend
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: lil-backend
+        namespace: "{{ inventory_namespace }}"
+      data:
+        ALLOWED_GROUPS: SVC0187LIL-ADMIN_AppGrpU,SVC0187LIL-COSEC_AppGrpU,SVC0187LIL-USER_AppGrpU
+        ADMIN_GROUP: SVC0187LIL-ADMIN_AppGrpU
+        COSEC_GROUP: SVC0187LIL-COSEC_AppGrpU
+        RO_GROUP: SVC0187LIL-USER_AppGrpU
+        SMTP_HOST: mail.epfl.ch
+        SMTP_PORT: "587"
+        OIDC_BASE_URL: "{{ openid_connect[inventory_environment].base_url }}"
+        OIDC_CLIENT_ID: "{{ openid_connect[inventory_environment].client_id }}"
+        CATALYSE_EMAIL: "{{ lil_backend_secrets.CATALYSE_EMAIL }}"
+        ENVIRONMENT: "{{ inventory_environment }}"
+
+- name: Secret/lil-backend
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      type: Opaque
+      metadata:
+        name: lil-backend
+        namespace: "{{ inventory_namespace }}"
+      stringData:
+        DATABASE_URL: "{{ database_url }}"
+        RMM_ACCESS_KEY: "{{ lil_backend_secrets.RMM.RMM_ACCESS_KEY }}"
+        RMM_ENCRYPTED_KEY: "{{ lil_backend_secrets.RMM.RMM_ENCRYPTED_KEY }}"
+        SERVICE_ACCOUNT_NAME: "{{ lil_backend_secrets.SERVICE_ACCOUNT.NAME }}"
+        SERVICE_ACCOUNT_PASSWORD: "{{ lil_backend_secrets.SERVICE_ACCOUNT.PASSWORD }}"
+        SERVICE_ACCOUNT_EMAIL: "{{ lil_backend_secrets.SERVICE_ACCOUNT.EMAIL }}"
+
+
+- name: Deployment/lil-backend
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: lil-backend
+        namespace: "{{ inventory_namespace }}"
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: lil-backend
+        template:
+          metadata:
+            labels:
+              app: lil-backend
+          spec:
+            serviceAccountName: lil
+            containers:
+              - name: lil-backend
+                image: "{{ ansible_quay_hostname }}/{{ quay_organization }}/lil-backend:{{ image_tag }}"
+                imagePullPolicy: Always
+                envFrom:
+                  - configMapRef:
+                      name: lil-backend
+                  - secretRef:
+                      name: lil-backend
+                resources:
+                  limits:
+                    memory: 1Gi
+                  requests:
+                    cpu: '{{ _cpu_request }}'
+                    memory: 1Gi
+                ports:
+                  - name: lil-p-back
+                    containerPort: 4010
+            imagePullSecrets:
+              - name: "{{ quay_puller_secret_name }}"
+  vars:
+    _cpu_request: "160m"
+
+- name: Service/lil-backend
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: lil-backend
+        namespace: "{{ inventory_namespace }}"
+        labels:
+          app: lil-backend
+        annotations:
+          authors: isas-fsd
+      spec:
+        ports:
+          - port: 4010
+            protocol: TCP
+            targetPort: 4010
+        selector:
+          app: lil-backend
+        type: ClusterIP
+
+- name: Routes
+  with_items:
+    - name: lil-backend-graphql
+      path: "/graphql"
+    - name: lil-backend-graphiql
+      path: "/graphiql"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
+    definition:
+      apiVersion: v1
+      kind: Route
+      metadata:
+        name: "{{ item.name }}"
+        namespace: '{{ inventory_namespace }}'
+        labels:
+          app: "{{ item.name }}"
+          route: "{{ item.visibility | default('private') }}"
+        annotations:
+          haproxy.router.openshift.io/balance: roundrobin
+          haproxy.router.openshift.io/disable_cookies: 'true'
+      spec:
+        host: "{{ item.host | default(inventory_web_hostname) }}"
+        path: "{{ item.path }}"
+        to:
+          kind: Service
+          name: lil-backend
+        port:
+          targetPort: 4010
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
