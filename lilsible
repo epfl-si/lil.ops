@@ -63,7 +63,7 @@ while [ "$#" -gt 0 ]; do
             inventory_mode="dev,test,prod"
             shift ;;
         --test)
-            inventory_mode="test"
+            inventory_mode="dev,test"
             shift ;;
         -m) mode=ansible
             ansible_args+=("-m")
