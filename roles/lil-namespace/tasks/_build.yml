@@ -25,9 +25,6 @@
 #  - build_rebuild_tags
 #        One or more tags that should force a rebuild of the image when
 #        present
-#
-#  - build_env
-#        Variables available during the image build
 
 - name: "{{ build_name }} on {{ ansible_quay_hostname }}"
   run_once: true
@@ -79,7 +76,6 @@
             from:   # Override the Dockerfile's `FROM` line
               kind: DockerImage
               name: "{{ build_base }}"
-            env: "{{ build_env | default([]) }}"
         output:
           to:
             kind: DockerImage
