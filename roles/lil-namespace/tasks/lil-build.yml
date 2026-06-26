@@ -4,7 +4,6 @@
     - quay-vars.yml
     - lil-vars.yml
 
-
 - tags: always
   include_vars:
     file: quay-secrets.yml

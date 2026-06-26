@@ -38,8 +38,11 @@ ensure_suitcase () {
     ensure_ansible_runtime
 }
 
-inventory_mode="test"
+inventory_mode="dev"
 inventories () {
+    case "$inventory_mode" in
+        *dev*) echo "-i inventory/dev.yml" ;;
+    esac
     case "$inventory_mode" in
         *test*) echo "-i inventory/test.yml" ;;
     esac
@@ -53,12 +56,14 @@ inventories () {
 mode=ansible-playbook
 
 declare -a ansible_args
-ansible_args=(-e @vars/global-vars.yml -e "lhdsible_dir=$OLDPWD")
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
         --prod)
-            inventory_mode="test,prod"
+            inventory_mode="dev,test,prod"
+            shift ;;
+        --test)
+            inventory_mode="test"
             shift ;;
         -m) mode=ansible
             ansible_args+=("-m")
