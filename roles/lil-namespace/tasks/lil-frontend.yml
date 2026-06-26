@@ -6,6 +6,7 @@
 
 - name: ConfigMap/lhd-frontend
   kubernetes.core.k8s:
+    kubeconfig: "{{ ansible_k8s_kubeconfig }}"
     state: present
     definition:
       apiVersion: v1
