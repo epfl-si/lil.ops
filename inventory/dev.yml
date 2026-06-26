@@ -1,0 +1,11 @@
+namespaces:
+  "hosts":
+    namespace/svc1172d-labhazdir:
+      inventory_namespace: svc0187d-lil-lab-inventory-loc
+      inventory_deployment_stage: development
+      ansible_connection: local
+      ansible_python_interpreter: "{{ ansible_playbook_python }}"
+      inventory_web_hostname: lil-dev.epfl.ch
+      inventory_environment: dev
+      inventory_openshift:
+        domain: ocpitsd0001.xaas.epfl.ch
