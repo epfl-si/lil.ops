@@ -4,6 +4,27 @@
     - quay-vars.yml
     - lil-vars.yml
 
+- name: ConfigMap/lhd-frontend
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: lil-frontend
+        namespace: "{{ inventory_namespace }}"
+      data:
+        12factor.json: >-
+          {{ _12factor | to_json }}
+  vars:
+    _12factor:
+      LIL_REACT_APP_AUTH_SERVER_URL: "{{ openid_connect[inventory_environment].base_url }}"
+      LIL_REACT_APP_HOMEPAGE_URL: "https://{{ inventory_web_hostname }}/"
+      LIL_REACT_APP_GRAPHQL_ENDPOINT_URL: "https://{{ inventory_web_hostname }}/graphql"
+      LIL_REACT_APP_ENDPOINT_URL: "https://{{ inventory_web_hostname }}"
+      LIL_OIDC_SCOPE: "openid {{ openid_connect[inventory_environment].client_id }}/.default"
+      LIL_OIDC_CLIENT_ID: "{{ openid_connect[inventory_environment].client_id }}"
+
 - name: ServiceAccount/lil
   kubernetes.core.k8s:
     kubeconfig: "{{ ansible_k8s_kubeconfig }}"
@@ -42,6 +63,9 @@
               - name: lil-frontend
                 image: "{{ ansible_quay_hostname }}/{{ quay_organization }}/lil-frontend:{{ image_tag }}"
                 imagePullPolicy: Always
+                volumeMounts:
+                  - name: 12factor
+                    mountPath: /config
                 resources:
                   limits:
                     memory: 256Mi
@@ -51,6 +75,10 @@
                 ports:
                   - name: lil-p-front
                     containerPort: 3000
+            volumes:
+              - name: 12factor
+                configMap:
+                  name: lil-frontend
             imagePullSecrets:
               - name: "{{ quay_puller_secret_name }}"
   vars:

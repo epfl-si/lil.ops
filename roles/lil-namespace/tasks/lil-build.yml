@@ -89,19 +89,6 @@
         ref: main
     build_rebuild_tags:
       - lil.rebuild
-    build_env: 
-      - name: LIL_REACT_APP_AUTH_SERVER_URL
-        value: "{{ openid_connect[inventory_environment].base_url }}"
-      - name: LIL_REACT_APP_HOMEPAGE_URL
-        value: "https://{{ inventory_web_hostname }}/"
-      - name: LIL_REACT_APP_GRAPHQL_ENDPOINT_URL
-        value: "https://{{ inventory_web_hostname }}/graphql"
-      - name: LIL_REACT_APP_ENDPOINT_URL
-        value: "https://{{ inventory_web_hostname }}"
-      - name: LIL_OIDC_SCOPE
-        value: "openid {{ openid_connect[inventory_environment].client_id }}/.default"
-      - name: LIL_OIDC_CLIENT_ID
-        value: "{{ openid_connect[inventory_environment].client_id }}"
 
 - name: Build lil-backend
   when: >-
