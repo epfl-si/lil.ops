@@ -4,7 +4,7 @@
     - quay-vars.yml
     - lil-vars.yml
 
-- name: ConfigMap/lhd-frontend
+- name: ConfigMap/lil-frontend
   kubernetes.core.k8s:
     kubeconfig: "{{ ansible_k8s_kubeconfig }}"
     state: present
