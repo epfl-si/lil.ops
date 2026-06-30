@@ -155,13 +155,13 @@
     - name: create-into-rmm
       command:
         - tsx
-        - cron/createIntoRMM.ts
+        - src/cron/createIntoRMM.ts
       image_name: "{{ ansible_quay_hostname }}/{{ quay_organization }}/lil-backend:{{ image_tag }}"
       schedule: "30 4 * * *"
     - name: notify-deletion
       command:
         - tsx
-        - cron/notifyDeletion.ts
+        - src/cron/notifyDeletion.ts
       image_name: "{{ ansible_quay_hostname }}/{{ quay_organization }}/lil-backend:{{ image_tag }}"
       schedule: "0 4 * * *"
   kubernetes.core.k8s:
