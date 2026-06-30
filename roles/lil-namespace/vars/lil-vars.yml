@@ -20,3 +20,7 @@ openid_connect:
 image_tag: >-
   {{ "prod" if inventory_deployment_stage == "production"
   else "latest" }}
+
+rmm_url: >-
+  {{ "https://rmm-de.jaggaer.com" if inventory_deployment_stage == "production"
+  else "https://rmm-uit-de.jaggaer.com" }}

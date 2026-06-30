@@ -29,6 +29,7 @@
         OIDC_BASE_URL: "{{ openid_connect[inventory_environment].base_url }}"
         OIDC_CLIENT_ID: "{{ openid_connect[inventory_environment].client_id }}"
         CATALYSE_EMAIL: "{{ lil_backend_secrets.CATALYSE_EMAIL }}"
+        RMM_URL: "{{ rmm_url }}"
         ENVIRONMENT: "{{ inventory_environment }}"
 
 - name: Secret/lil-backend
