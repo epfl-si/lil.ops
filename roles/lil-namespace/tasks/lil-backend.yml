@@ -147,3 +147,60 @@
         tls:
           termination: edge
           insecureEdgeTerminationPolicy: Redirect
+
+- name: "CronJobs"
+  when: >-
+    inventory_deployment_stage == "test"
+  with_items:
+    - name: create-into-rmm
+      command:
+        - tsx
+        - cron/createIntoRMM.ts
+      image_name: "{{ ansible_quay_hostname }}/{{ quay_organization }}/lil-backend:{{ image_tag }}"
+      schedule: "30 4 * * *"
+    - name: notify-deletion
+      command:
+        - tsx
+        - cron/notifyDeletion.ts
+      image_name: "{{ ansible_quay_hostname }}/{{ quay_organization }}/lil-backend:{{ image_tag }}"
+      schedule: "0 4 * * *"
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: "{{ item.name }}"
+        namespace: "{{ inventory_namespace }}"
+      spec:
+        schedule: "{{ item.schedule }}"
+        timeZone: "Europe/Zurich"
+        jobTemplate:
+          spec:
+            template:
+              metadata:
+                labels:
+                  cron: "{{ item.name }}"
+              spec:
+                serviceAccountName: lil
+                containers:
+                  - name: "{{ item.name }}"
+                    image: "{{ item.image_name }}"
+                    envFrom:
+                      - configMapRef:
+                          name: lil-backend
+                      - secretRef:
+                          name: lil-backend
+                    command: "{{ [item.command[0]] }}"
+                    args: "{{ item.command[1:] }}"
+                    resources:
+                      limits:
+                        memory: 1Gi
+                      requests:
+                        cpu: '{{ _cpu_request }}'
+                        memory: 1Gi
+                imagePullSecrets:
+                  - name: "{{ quay_puller_secret_name }}"
+                restartPolicy: OnFailure
+        concurrencyPolicy: Forbid
+  vars:
+    _cpu_request: "160m"
