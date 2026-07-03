@@ -25,6 +25,7 @@
       LIL_REACT_APP_ENDPOINT_URL: "https://{{ inventory_web_hostname }}"
       LIL_OIDC_SCOPE: "openid {{ openid_connect[inventory_environment].client_id }}/.default"
       LIL_OIDC_CLIENT_ID: "{{ openid_connect[inventory_environment].client_id }}"
+      ENVIRONMENT: "{{ inventory_environment }}"
 
 - name: ServiceAccount/lil
   kubernetes.core.k8s:
