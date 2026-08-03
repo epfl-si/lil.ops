@@ -31,6 +31,7 @@
         CATALYSE_EMAIL: "{{ lil_backend_secrets.CATALYSE_EMAIL }}"
         RMM_URL: "{{ rmm_url }}"
         ENVIRONMENT: "{{ inventory_environment }}"
+        API_EPFL_CH_URL: https://api.epfl.ch/v1
 
 - name: Secret/lil-backend
   kubernetes.core.k8s:
