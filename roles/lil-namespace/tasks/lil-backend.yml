@@ -20,10 +20,10 @@
         name: lil-backend
         namespace: "{{ inventory_namespace }}"
       data:
-        ALLOWED_GROUPS: SVC0187LIL-ADMIN_AppGrpU,SVC0187LIL-COSEC_AppGrpU,SVC0187LIL-USER_AppGrpU
-        ADMIN_GROUP: SVC0187LIL-ADMIN_AppGrpU
-        COSEC_GROUP: SVC0187LIL-COSEC_AppGrpU
-        RO_GROUP: SVC0187LIL-USER_AppGrpU
+        ALLOWED_GROUPS: SVC1923LIL-ADMIN_AppGrpU,SVC1923LIL-COSEC_AppGrpU,SVC1923LIL-USER_AppGrpU
+        ADMIN_GROUP: SVC1923LIL-ADMIN_AppGrpU
+        COSEC_GROUP: SVC1923LIL-COSEC_AppGrpU
+        RO_GROUP: SVC1923LIL-USER_AppGrpU
         SMTP_HOST: mail.epfl.ch
         SMTP_PORT: "587"
         OIDC_BASE_URL: "{{ openid_connect[inventory_environment].base_url }}"
