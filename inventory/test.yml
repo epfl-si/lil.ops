@@ -1,7 +1,7 @@
 namespaces:
   "hosts":
-    namespace/svc0187t-lil-lab-inventory-loc:
-      inventory_namespace: svc0187t-lil-lab-inventory-loc
+    namespace/svc1923t-lil-lab-inventory-loc:
+      inventory_namespace: svc1923t-lil-lab-inventory-loc
       inventory_deployment_stage: test
       ansible_connection: local
       ansible_python_interpreter: "{{ ansible_playbook_python }}"
