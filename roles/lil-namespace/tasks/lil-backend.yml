@@ -150,8 +150,6 @@
           insecureEdgeTerminationPolicy: Redirect
 
 - name: "CronJobs"
-  when: >-
-    inventory_deployment_stage == "test"
   with_items:
     - name: create-into-rmm
       command:
@@ -186,6 +184,7 @@
                 containers:
                   - name: "{{ item.name }}"
                     image: "{{ item.image_name }}"
+                    imagePullPolicy: Always
                     envFrom:
                       - configMapRef:
                           name: lil-backend
