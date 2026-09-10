@@ -32,6 +32,8 @@
         RMM_URL: "{{ rmm_url }}"
         ENVIRONMENT: "{{ inventory_environment }}"
         API_EPFL_CH_URL: https://api.epfl.ch/v1
+        ALLOWED_CITIES: LAUSANNE,NEUCHATEL,SION,GENEVE,FRIBOURG
+        RMM_SITE_MAPPING: '{"ECUBLENS":"LAUSANNE","VALAIS":"SION"}'
 
 - name: Secret/lil-backend
   kubernetes.core.k8s:
