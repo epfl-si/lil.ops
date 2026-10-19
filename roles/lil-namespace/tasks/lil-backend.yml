@@ -93,6 +93,12 @@
                 ports:
                   - name: lil-p-back
                     containerPort: 4010
+                livenessProbe:
+                  httpGet:
+                    path: /health
+                    port: 4010
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
             imagePullSecrets:
               - name: "{{ quay_puller_secret_name }}"
   vars:

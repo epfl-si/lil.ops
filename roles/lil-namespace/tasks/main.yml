@@ -31,3 +31,12 @@
         - lil.deployment.frontend.k8s
   tags:
     - lil.deployment.frontend.k8s
+
+- name: Monitoring LIL
+  include_tasks:
+    file: monitoring.yml
+    apply:
+      tags:
+        - lil.monitoring.k8s
+  tags:
+    - lil.monitoring.k8s
