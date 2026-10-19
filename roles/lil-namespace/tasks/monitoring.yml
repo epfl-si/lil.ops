@@ -1,0 +1,85 @@
+- tags: always
+  include_vars: lil-vars.yml
+
+- name: Secret - Bot Token (Telegram)
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      type: Opaque
+      metadata:
+        name: telegram-bot-token
+        namespace: "{{ inventory_namespace }}"
+      data:
+        access_token: "{{ lil_backend_secrets.telegram.token | b64encode }}"
+
+- name: Monitoring - AlertmanagerConfig
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: monitoring.coreos.com/v1beta1
+      kind: AlertmanagerConfig
+      metadata:
+        name: alertmanager-telegram
+        namespace: "{{ inventory_namespace }}"
+      spec:
+        route:
+          receiver: "telegram"
+          groupBy: ["instance"]
+          groupWait: 20s
+          groupInterval: 5m
+          repeatInterval: 3h
+          matchers:
+            - name: sendto
+              value: telegram
+              matchType: "="
+        receivers:
+          - name: "telegram"
+            telegramConfigs:
+              - botToken:
+                  name: telegram-bot-token
+                  key: access_token
+                chatID: "{{ lil_backend_secrets.telegram.chat_id | int }}"
+                message: |
+                  {% raw %}
+                  {{ range .Alerts }}
+                  {{ if eq .Status "firing" }}
+                  🚨 FIRING {{ .Annotations.summary }}
+                  {{ .Annotations.description }}
+                  Started at (UTC): {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+                  {{ else if eq .Status "resolved" }}
+                  🟢 RESOLVED {{ .Annotations.summary }}
+                  {{ .Annotations.description }}
+                  Started at (UTC): {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+                  Ended at (UTC): {{ .EndsAt.Format "2006-01-02 15:04:05" }}
+                  {{ end }}
+                  {{ end }}
+                  {% endraw %}
+                sendResolved: true
+
+- name: Monitoring - PrometheusRule
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: PrometheusRule
+      metadata:
+        name: lil-alerts
+        namespace: "{{ inventory_namespace }}"
+      spec:
+        groups:
+          - name: lil-backend-alerts
+            rules:
+              - alert: lilTooManyRestarts
+                expr: >
+                  round(increase(kube_pod_container_status_restarts_total{namespace="{{ inventory_namespace }}", container="lil-backend"}[{{ _backend_restarts_window_minutes }}m])) > 1
+                for: "{{ _backend_restart_duration_minutes }}m"
+                labels:
+                  severity: critical
+                  sendto: telegram
+                annotations:
+                  summary: "Too many lil-backend restarts"
+                  description: >-
+                    LIL-backend has restarted more than once in the last {{ _backend_restarts_window_minutes }} minutes.
+  vars:
+    _backend_restarts_window_minutes: 5
+    _backend_restart_duration_minutes: 3
+
