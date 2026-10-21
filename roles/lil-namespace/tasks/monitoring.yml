@@ -70,7 +70,7 @@
             rules:
               - alert: lilTooManyRestarts
                 expr: >
-                  increase(kube_pod_container_status_restarts_total{namespace="{{ inventory_namespace }}", container="lil-backend"}[{{ _backend_restarts_window_minutes }}m]) > 1
+                  increase(kube_pod_container_status_restarts_total{namespace="{{ inventory_namespace }}", container="lil-backend"}[{{ _backend_restarts_window_minutes }}m]) > 2
                 for: "{{ _backend_restart_duration_minutes }}m"
                 labels:
                   severity: critical
@@ -80,6 +80,6 @@
                   description: >-
                     LIL-backend has restarted more than once in the last {{ _backend_restarts_window_minutes }} minutes.
   vars:
-    _backend_restarts_window_minutes: 5
+    _backend_restarts_window_minutes: 10
     _backend_restart_duration_minutes: 3
 
