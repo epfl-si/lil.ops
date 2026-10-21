@@ -78,7 +78,7 @@
                 annotations:
                   summary: "Too many lil-backend restarts"
                   description: >-
-                    LIL-backend has restarted more than once in the last {{ _backend_restarts_window_minutes }} minutes.
+                    LIL-backend has restarted more than twice in the last {{ _backend_restarts_window_minutes }} minutes.
   vars:
     _backend_restarts_window_minutes: 10
     _backend_restart_duration_minutes: 3
