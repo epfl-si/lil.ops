@@ -62,8 +62,8 @@
       imagePullSecrets:
         - name: "{{ quay_builder_secret_name }}"
 
-# Mirror Node:20 base image here
-- name: Mirror the Node:20 base image
+# Mirror Node:26 base image here
+- name: Mirror the Node:26 base image
   when: >-
     inventory_deployment_stage == "test"
   include_tasks:
@@ -71,7 +71,7 @@
   vars:
     mirror_name: "node"
     mirror_from: "docker.io/library/node"
-    mirror_tags: ["20"]
+    mirror_tags: ["26"]
 
 - name: Build lil-frontend
   when: >-
@@ -81,7 +81,7 @@
   vars:
     build_name: lil-frontend
     build_description: LIL frontend application
-    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization }}/node:20"
+    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization }}/node:26"
     build_source:
       type: Git
       git:
@@ -98,7 +98,7 @@
   vars:
     build_name: lil-backend
     build_description: lil backend application
-    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization }}/node:20"
+    build_base: "{{ ansible_quay_hostname }}/{{ quay_organization }}/node:26"
     build_source:
       type: Git
       git:
