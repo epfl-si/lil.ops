@@ -1,0 +1,19 @@
+resources:
+  database:
+    test:
+      storage: 5Gi
+      replicas: 2
+      cpu: 200m
+      memory: 512Mi
+    production:
+      storage: 5Gi
+      replicas: 2
+      cpu: 200m
+      memory: 512Mi
+
+database:
+  cluster: lil-postgres
+  name: lil
+  port: 5432
+  user: lil
+  host: lil-postgres-rw

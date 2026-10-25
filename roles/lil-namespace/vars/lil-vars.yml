@@ -1,7 +1,7 @@
 lil_backend_secrets: "{{ lookup('pipe', 'keybase fs read /keybase/team/epfl_lil/backend/' ~ inventory_environment ~ '/secrets.yml') | from_yaml }}"
 
 database_url: >-
-  postgresql://{{ lil_backend_secrets.database.user }}:{{ lil_backend_secrets.database.password }}@{{ lil_backend_secrets.database.host }}:{{ lil_backend_secrets.database.port }}/{{ lil_backend_secrets.database.name }}?schema=public
+  postgresql://{{ database.user }}:{{ lil_backend_secrets.database_oc.password }}@{{ database.host }}:{{ database.port }}/{{ database.name }}?schema=public
 
 openid_connect:
   dev:

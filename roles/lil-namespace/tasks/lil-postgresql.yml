@@ -1,0 +1,135 @@
+- tags: always
+  include_vars: "{{ item }}"
+  with_items:
+    - lil-vars.yml
+    - postgresql-vars.yml
+    - quay-vars.yml
+
+- name: Create S3 credentials secret
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: s3-credentials
+        namespace: "{{ inventory_namespace }}"
+        labels:
+          app.kubernetes.io/name: lil
+          app.kubernetes.io/component: backup
+      type: Opaque
+      stringData:
+        AWS_BUCKET_NAME: "{{ lil_backend_secrets.s3.name }}"
+        AWS_BUCKET_HOST: "{{ lil_backend_secrets.s3.host }}"
+        AWS_ACCESS_KEY_ID: "{{ lil_backend_secrets.s3.access_key_id }}"
+        AWS_SECRET_ACCESS_KEY: "{{ lil_backend_secrets.s3.access_key_secret }}"
+
+- name: Create database credentials secret
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: db-credentials
+        namespace: "{{ inventory_namespace }}"
+        labels:
+          app.kubernetes.io/name: lil
+          app.kubernetes.io/component: database
+          cnpg.io/reload: "true"
+      type: kubernetes.io/basic-auth
+      stringData:
+        username: "{{ database.user }}"
+        password: "{{ lil_backend_secrets.database_oc.password }}"
+        database: "{{ database.name }}"
+
+- name: Deploy PostgreSQL cluster
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      metadata:
+        name: lil-postgres
+        namespace: "{{ inventory_namespace }}"
+        labels:
+          app.kubernetes.io/name: lil
+          app.kubernetes.io/component: database
+      spec:
+        imageName: "{{ ansible_quay_hostname }}/{{ quay_organization }}/postgresql:17.5"
+        imagePullSecrets:
+          - name: "{{ quay_puller_secret_name }}"
+        enablePDB: false
+        monitoring:
+          enablePodMonitor: true
+        instances: "{{ resources.database[inventory_deployment_stage].replicas | int }}"
+        storage:
+          size: "{{ resources.database[inventory_deployment_stage].storage }}"
+          storageClass: sc-gold
+        enableSuperuserAccess: true
+        resources:
+          requests:
+            cpu: "{{ resources.database[inventory_deployment_stage].cpu }}"
+            memory: "{{ resources.database[inventory_deployment_stage].memory }}"
+          limits:
+            memory: "{{ resources.database[inventory_deployment_stage].memory }}"
+        backup:
+          barmanObjectStore:
+            destinationPath: "s3://{{ lil_backend_secrets.s3.name }}"
+            endpointURL: "https://{{ lil_backend_secrets.s3.host }}"
+            s3Credentials:
+              accessKeyId:
+                name: s3-credentials
+                key: AWS_ACCESS_KEY_ID
+              secretAccessKey:
+                name: s3-credentials
+                key: AWS_SECRET_ACCESS_KEY
+        env:
+          - name: AWS_REQUEST_CHECKSUM_CALCULATION
+            value: WHEN_REQUIRED
+          - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+            value: WHEN_REQUIRED
+        postgresql:
+          parameters:
+            max_connections: "600"
+            max_slot_wal_keep_size: 3GB
+            shared_buffers: 256MB
+        managed:
+          roles:
+            - name: "{{ database.user }}"
+              ensure: present
+              login: true
+              superuser: false
+              passwordSecret:
+                name: db-credentials
+
+- name: Create database
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: Database
+      metadata:
+        name: "{{ database.name }}"
+        namespace: "{{ inventory_namespace }}"
+        labels:
+          app.kubernetes.io/name: lil
+          app.kubernetes.io/component: database
+      spec:
+        name: "{{ database.name }}"
+        owner: "{{ database.user }}"
+        cluster:
+          name: "{{ database.cluster }}"
+
+- name: Create scheduled backup
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: postgresql.cnpg.io/v1
+      kind: ScheduledBackup
+      metadata:
+        name: "{{ database.cluster }}"
+        namespace: "{{ inventory_namespace }}"
+        labels:
+          app.kubernetes.io/name: lil
+          app.kubernetes.io/component: backup
+      spec:
+        schedule: "0 0 2 * * *"
+        backupOwnerReference: self
+        cluster:
+          name: "{{ database.cluster }}"

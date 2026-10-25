@@ -17,6 +17,14 @@
     - lil.build.k8s
 
 - include_tasks:
+    file: lil-postgresql.yml
+    apply:
+      tags:
+        - lil.postgresql.k8s
+  tags:
+    - lil.postgresql.k8s
+
+- include_tasks:
     file: lil-backend.yml
     apply:
       tags:
