@@ -81,13 +81,13 @@
                     LIL-backend has restarted more than twice in the last {{ _backend_restarts_window_minutes }} minutes.
               - alert: CNPGInstanceNotReady
                 expr: >
-                  kube_pod_status_ready{condition="true", namespace="{{ inventory_namespace }}", pod=~"lhd-postgres-[0-9]+"} == 0
+                  kube_pod_status_ready{condition="true", namespace="{{ inventory_namespace }}", pod=~"lil-postgres-[0-9]+"} == 0
                 for: "{{ _db_down_minutes }}m"
                 labels:
                   severity: critical
                   sendto: telegram
                 annotations:
-                  summary: "PostgreSQL pod lhd-postgres is not ready"
+                  summary: "PostgreSQL pod lil-postgres is not ready"
                   description: >-
                     Pod has been not ready for more than {{ _db_down_minutes }} minutes.
               - alert: CNPGCollectorDown
@@ -98,7 +98,7 @@
                   severity: critical
                   sendto: telegram
                 annotations:
-                  summary: "PostgreSQL is not responding on lhd-postgres"
+                  summary: "PostgreSQL is not responding on lil-postgres"
                   description: >-
                     The CNPG exporter cannot reach PostgreSQL.
 
