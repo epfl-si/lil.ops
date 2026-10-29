@@ -1,5 +1,10 @@
 resources:
   database:
+    development:
+      storage: 3Gi
+      replicas: 1
+      cpu: 200m
+      memory: 512Mi
     test:
       storage: 5Gi
       replicas: 2
